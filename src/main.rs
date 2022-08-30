@@ -1,58 +1,39 @@
 #[macro_use] extern crate rocket;
+use std::net::IpAddr;
+
+use rocket::http::HeaderMap;
 use rocket::outcome::Outcome;
 use rocket::request::{self, Request, FromRequest};
 
-enum HostType {
-    IP,
-    PTR,
-    TRACE,
+struct ClientData<'a> {
+    headers: HeaderMap<'a>,
+    ip: IpAddr,
 }
 
+
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for HostType {
+impl<'r> FromRequest<'r> for ClientData<'r> {
     type Error = ();
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
-        let host_headers: Vec<_> = request.headers().get("host").collect();
-        let host: String;
-        if host_headers.len() != 0 {
-            host = host_headers[0].to_lowercase();
-        } else {
-            host = String::from("ip");
-        }
-
-        if host.contains("ip") {
-            Outcome::Success(HostType::IP)
-        } else if host.contains("ptr") {
-            Outcome::Success(HostType::PTR)
-        } else if host.contains("trace") {
-            Outcome::Success(HostType::TRACE)
-        } else {
-            Outcome::Success(HostType::IP)
-        }
+        let client_data = ClientData {
+            headers: request.headers().clone(),
+            ip: request.real_ip().unwrap_or(request.client_ip().unwrap()).clone(),
+        };
+        Outcome::Success(client_data)
     }
 }
 
 #[get("/")]
-fn index(action: HostType) -> String {
-    match action {
-        HostType::IP => do_ip(),
-        HostType::PTR => do_ptr(),
-        HostType::TRACE => do_trace(),
+fn index(data: ClientData) -> String {
+    let host = data.headers.get_one("host").unwrap_or("");
+    if host.contains("trace") {
+        data.ip.to_string() + "trace\n"
+    } else if host.contains("ptr") {
+        data.ip.to_string() + " ptr\n"
+    } else {
+        data.ip.to_string() + "\n"        
     }
 }
-
-fn do_ip() -> String {
-    return String::from("127.0.0.1\n")
-}
-
-fn do_trace() -> String {
-    return String::from("trace\n")
-}
-
-fn do_ptr() -> String {
-    return String::from("ptr\n")
-}
-
 
 #[launch]
 fn rocket() -> _ {
