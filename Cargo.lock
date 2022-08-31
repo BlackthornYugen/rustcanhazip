@@ -530,14 +530,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "icanhazip-rust"
-version = "0.1.0"
-dependencies = [
- "dns-lookup",
- "rocket",
-]
-
-[[package]]
 name = "indexmap"
 version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -983,6 +975,14 @@ dependencies = [
  "time",
  "tokio",
  "uncased",
+]
+
+[[package]]
+name = "rustcanhazip"
+version = "0.1.0"
+dependencies = [
+ "dns-lookup",
+ "rocket",
 ]
 
 [[package]]
