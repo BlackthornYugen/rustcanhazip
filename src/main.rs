@@ -27,7 +27,6 @@ impl<'r> FromRequest<'r> for ClientData<'r> {
     }
 }
 
-#[get("/")]
 async fn index(data: ClientData<'_>) -> String {
     let host = data.headers.get_one("host").unwrap_or("");
     if host.contains("trace") {
@@ -75,7 +74,22 @@ async fn trace<'r>(ip: IpAddr) -> String {
     }
 }
 
+#[get("/")]
+async fn get (data: ClientData<'_>) -> String {
+    index(data).await
+}
+
+#[put("/")]
+async fn put (data: ClientData<'_>) -> String {
+    index(data).await
+}
+
+#[post("/")]
+async fn post (data: ClientData<'_>) -> String {
+    index(data).await
+}
+
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index])
+    rocket::build().mount("/", routes![get, put, post])
 }
