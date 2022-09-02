@@ -2,6 +2,7 @@
 use std::net::IpAddr;
 use std::str;
 use std::process::Stdio;
+use std::vec::Vec;
 
 use dns_lookup::lookup_addr;
 
@@ -9,8 +10,8 @@ use rocket::http::HeaderMap;
 use rocket::outcome::Outcome;
 use rocket::request::{self, Request, FromRequest};
 
-struct ClientData<'a> {
-    headers: HeaderMap<'a>,
+struct ClientData<'r> {
+    headers: HeaderMap<'r>,
     ip: IpAddr,
 }
 
@@ -39,13 +40,19 @@ async fn index(data: ClientData<'_>) -> String {
         let address = lookup_addr(&data.ip).unwrap();
         info!("PTR: {} resolved to {}", data.ip, address);
         format!("{address}\n")
+    } else if host.contains("header") {
+        let mut header_data: Vec<String> = Vec::new();
+        for header in data.headers.iter() {
+            header_data.push(format!("{}: {}", header.name, header.value));
+        }
+        format!("{}\n", header_data.join("\n"))
     } else {
         info!("IP: {} returned", data.ip);
         format!("{}\n", data.ip)
     }
 }
 
-async fn trace(ip: IpAddr) -> String {
+async fn trace<'r>(ip: IpAddr) -> String {
     use std::process::Command;
 
     let process = Command::new("sh") 
@@ -62,9 +69,9 @@ async fn trace(ip: IpAddr) -> String {
     let stdout = str::from_utf8(&output.stdout).expect("can't process stdout");
 
     if output.status.success() {
-        return format!("{}{}", stderr, stdout)
+        format!("{}{}", stderr, stdout)
     } else {
-        return "".to_owned();
+        "".to_owned()
     }
 }
 
